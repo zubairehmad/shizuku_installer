@@ -23,3 +23,6 @@ In the following cases this app may prove to be useful:
 ### Supported Installable Files:
 - **.apk**
 - **.xapk**
+
+### Download APK:
+- Download the apk for the app from [here](https://github.com/zubairehmad/shizuku_installer/releases/tag/v1.0.0).
