@@ -8,6 +8,7 @@ class FileSelectionSection extends StatelessWidget {
     required this.selectedPath,
     required this.isInstalling,
     required this.isShizukuReady,
+    required this.isFileLoading,
     required this.hasValidSelection,
     required this.onSelectFile,
     required this.onInstall,
@@ -19,6 +20,7 @@ class FileSelectionSection extends StatelessWidget {
   final bool isInstalling;
   final bool isShizukuReady;
   final bool hasValidSelection;
+  final bool isFileLoading;
   final VoidCallback onSelectFile;
   final VoidCallback onInstall;
   final VoidCallback onClearSelection;
@@ -28,18 +30,21 @@ class FileSelectionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasSelection = selectedPath != null;
     final bool isSelectDisabled = isInstalling || !isShizukuReady;
-    final bool canInstall =
-      isShizukuReady && hasSelection && !isInstalling;
+    final bool canInstall = isShizukuReady && hasSelection && !isInstalling;
     final HeaderStatus headerStatus = !isShizukuReady
         ? HeaderStatus.notReady
-        : (hasValidSelection? HeaderStatus.ready : HeaderStatus.oneStepRequired);
+        : (hasValidSelection
+              ? HeaderStatus.ready
+              : HeaderStatus.oneStepRequired);
     final String selectLabel = selectedPath != null
         ? 'Change Selected File'
         : 'Select Installable File';
-    final VoidCallback? installHandler =
-      canInstall && hasValidSelection ? onInstall : null;
-    final VoidCallback? clearHandler =
-      (!hasSelection || isInstalling) ? null : onClearSelection;
+    final VoidCallback? installHandler = canInstall && hasValidSelection
+        ? onInstall
+        : null;
+    final VoidCallback? clearHandler = (!hasSelection || isInstalling)
+        ? null
+        : onClearSelection;
 
     final String? fileName = hasSelection
         ? selectedPath!.split('/').last
@@ -50,17 +55,23 @@ class FileSelectionSection extends StatelessWidget {
       children: <Widget>[
         HeaderWidget(header: 'Install File', status: headerStatus),
         const SizedBox(height: 8),
-        Text(
-          fileName ?? 'No file selected.',
-          maxLines: 4,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          onPressed: isSelectDisabled ? null : onSelectFile,
-          icon: const Icon(Icons.folder_open),
-          label: Text(selectLabel),
-        ),
+        if (isFileLoading) ...const [
+          Text('Please wait, file is being loaded'),
+          SizedBox(height: 16),
+          LinearProgressIndicator(),
+        ] else ...[
+          Text(
+            fileName ?? 'No file selected.',
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: isSelectDisabled ? null : onSelectFile,
+            icon: const Icon(Icons.folder_open),
+            label: Text(selectLabel),
+          ),
+        ],
         const SizedBox(height: 10),
         ElevatedButton.icon(
           onPressed: installHandler,

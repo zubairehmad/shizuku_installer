@@ -27,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _selectedPath;
+  bool _isFileLoading = false;
   bool _isInstalling = false;
   bool _isCheckingShizuku = true;
   ShizukuStateInfo? _shizukuState;
@@ -132,28 +133,28 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      type: FileType.any,
-      withData: false,
-    );
+    setState(() => _isFileLoading = true);
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.any,
+        withData: false,
+      );
 
-    if (result == null || result.files.isEmpty) {
-      return;
+      final String? selectedPath = result?.files.singleOrNull?.path;
+      if (!mounted || selectedPath == null || selectedPath.isEmpty) {
+        return;
+      }
+
+      setState(() {
+        _selectedPath = selectedPath;
+        _isFileLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Exception caught while selecting file: ${e.toString()}');
+    } finally {
+      if (mounted && _isFileLoading) setState(() => _isFileLoading = false);
     }
-
-    final String? selectedPath = result.files.single.path;
-    if (selectedPath == null || selectedPath.isEmpty) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _selectedPath = selectedPath;
-    });
   }
 
   Future<bool> _ensureStoragePermission() async {
@@ -374,6 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             selectedPath: _selectedPath,
                             isInstalling: _isInstalling,
                             isShizukuReady: _isShizukuReady,
+                            isFileLoading: _isFileLoading,
                             hasValidSelection: _hasValidSelection,
                             onSelectFile: _openFileSelector,
                             onInstall: _installSelectedApk,
@@ -397,6 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           selectedPath: _selectedPath,
                           isInstalling: _isInstalling,
                           isShizukuReady: _isShizukuReady,
+                          isFileLoading: _isFileLoading,
                           hasValidSelection: _hasValidSelection,
                           onSelectFile: _openFileSelector,
                           onInstall: _installSelectedApk,
