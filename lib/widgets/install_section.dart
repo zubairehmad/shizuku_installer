@@ -177,7 +177,9 @@ class _InstallSectionState extends State<InstallSection> {
             : 'Select Installable File';
         final headerStatus = !isShizukuReady
             ? HeaderStatus.notReady
-            : HeaderStatus.ready;
+            : hasSelection
+            ? HeaderStatus.ready
+            : HeaderStatus.oneStepRequired;
         final installationText = _isInstalling
             ? _cancelRequested
                   ? 'Cancelling...'
