@@ -24,6 +24,48 @@ class _InstallSectionState extends State<InstallSection> {
   bool _isFileLoading = false;
   bool _isInstalling = false;
   bool _cancelRequested = false;
+  bool _isSelectedByOpenWith = false;
+
+  Future<void> _handlePendingUri() async {
+    final uri = await ShizukuInstaller.getPendingUri();
+    if (uri != null) {
+      _handleUriInstallRequest(uri);
+    }
+  }
+
+  Future<void> _handleUriInstallRequest(String uri) async {
+    if (_isInstalling) {
+      return;
+    }
+
+    setState(() => _isFileLoading = true);
+
+    try {
+      final path = await ShizukuInstaller.copyUriToTempDir(uri);
+      _selectedPath = path;
+      _isSelectedByOpenWith = true;
+    } on PlatformException catch (e) {
+      AppMessenger.showMessage(
+        "${e.code} ${e.message == null || e.message!.isEmpty ? '' : "- ${e.message}"}",
+      );
+    } catch (e) {
+      debugPrint(
+        "Unexpected exception caught in _handleUriInstallRequest: ${e.toString()}",
+      );
+      AppMessenger.showMessage(
+        "Unexpected error occured, please try again later.",
+      );
+    }
+
+    setState(() => _isFileLoading = false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _handlePendingUri();
+    ShizukuInstaller.setOnOpenFileListener(listener: _handleUriInstallRequest);
+  }
 
   Future<void> _installSelectedPackage() async {
     setState(() {
@@ -92,6 +134,7 @@ class _InstallSectionState extends State<InstallSection> {
 
       setState(() {
         _selectedPath = selectedPath;
+        _isSelectedByOpenWith = false;
         _isFileLoading = false;
       });
     } catch (e) {
@@ -106,8 +149,7 @@ class _InstallSectionState extends State<InstallSection> {
       return false;
     }
 
-    if (!path.contains('/cache/file_picker/')) {
-      debugPrint('not ok');
+    if (!path.contains('/cache/file_picker/') && !_isSelectedByOpenWith) {
       return false;
     }
 
@@ -158,6 +200,7 @@ class _InstallSectionState extends State<InstallSection> {
     final future = _cleanupPickedFile(_selectedPath!);
     setState(() {
       _selectedPath = null;
+      _isSelectedByOpenWith = false;
     });
     await future;
   }
@@ -169,8 +212,8 @@ class _InstallSectionState extends State<InstallSection> {
       builder: (_, isShizukuReady, _) {
         final hasSelection = _selectedPath != null;
         final isSelectDisabled = _isInstalling || !isShizukuReady;
-        final canInstall =
-            isShizukuReady && hasSelection && !_isInstalling && !_isFileLoading;
+        final canClearSelection = hasSelection && !_isInstalling && !_isFileLoading;
+        final canInstall = isShizukuReady && canClearSelection;
         final fileName = _selectedPath?.split('/').last;
         final selectLabel = _selectedPath != null
             ? 'Change Selected File'
@@ -264,7 +307,7 @@ class _InstallSectionState extends State<InstallSection> {
             ],
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: canInstall ? _clearSelection : null,
+              onPressed: canClearSelection ? _clearSelection : null,
               icon: const Icon(Icons.clear),
               label: const Text('Clear Selection'),
             ),
