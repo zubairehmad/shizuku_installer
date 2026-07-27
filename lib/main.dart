@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'providers/shizuku_state_provider.dart';
+import 'services/app_messenger.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -26,6 +29,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Shizuku Package Installer',
+      scaffoldMessengerKey: AppMessenger.messengerKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
@@ -38,9 +42,12 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       themeMode: _themeMode,
-      home: HomeScreen(
-        themeMode: _themeMode,
-        onThemeModeChanged: _updateThemeMode,
+      home: ChangeNotifierProvider(
+        create: (_) => ShizukuStateProvider(4),
+        child: HomeScreen(
+          themeMode: _themeMode,
+          onThemeModeChanged: _updateThemeMode,
+        ),
       ),
     );
   }

@@ -32,7 +32,7 @@ class ShizukuInstaller {
   }
 
   static Future<bool> cancelInstall() async {
-    final bool? result = await _channel.invokeMethod<bool>('cancelInstall');
+    final result = await _channel.invokeMethod<bool>('cancelInstall');
     return result ?? false;
   }
 }

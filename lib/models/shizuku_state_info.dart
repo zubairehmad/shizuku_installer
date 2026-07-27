@@ -33,4 +33,18 @@ class ShizukuStateInfo {
       permissionGranted: (map['permissionGranted'] as bool?) ?? false,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is ShizukuStateInfo &&
+            status == other.status &&
+            installed == other.installed &&
+            running == other.running &&
+            permissionGranted == other.permissionGranted);
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(status, installed, running, permissionGranted);
 }
