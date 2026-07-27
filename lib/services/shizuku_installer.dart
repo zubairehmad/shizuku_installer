@@ -9,6 +9,30 @@ class ShizukuInstaller {
     'adb_pkg_installer/shizuku',
   );
 
+  static void setOnOpenFileListener({
+    required Future<void> Function(String) listener,
+  }) {
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onOpenFile':
+          await listener(call.arguments as String);
+          break;
+        default:
+          throw MissingPluginException();
+      }
+    });
+  }
+
+  static Future<String?> getPendingUri() async {
+    return await _channel.invokeMethod<String?>('getPendingUri');
+  }
+
+  static Future<String?> copyUriToTempDir(String uriString) async {
+    return await _channel.invokeMethod<String?>('copyUriToTempDir', {
+      'uriString': uriString,
+    });
+  }
+
   static Future<ShizukuStateInfo> getShizukuState() async {
     final Map<Object?, Object?>? result = await _channel
         .invokeMapMethod<Object?, Object?>('getShizukuState');
