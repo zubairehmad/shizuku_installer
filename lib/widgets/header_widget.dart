@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum HeaderStatus { ready, oneStepRequired, notReady }
+enum HeaderStatus { ready, oneStepRequired, notReady, loading }
 
 class HeaderWidget extends StatelessWidget {
   const HeaderWidget({super.key, required this.header, required this.status});
@@ -23,6 +23,10 @@ class HeaderWidget extends StatelessWidget {
       case HeaderStatus.notReady:
         background = Colors.red;
         iconData = Icons.close;
+      default:
+        // initlaizing because required, but they won't be used
+        background = Colors.red;
+        iconData = Icons.close;
     }
 
     return Row(
@@ -31,12 +35,19 @@ class HeaderWidget extends StatelessWidget {
           children: [
             Text(header, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 10,
-              backgroundColor: background,
-              foregroundColor: Colors.white,
-              child: Icon(iconData, size: 16),
-            ),
+            if (status == HeaderStatus.loading)
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: const CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            else
+              CircleAvatar(
+                radius: 10,
+                backgroundColor: background,
+                foregroundColor: Colors.white,
+                child: Icon(iconData, size: 16),
+              ),
           ],
         ),
       ],

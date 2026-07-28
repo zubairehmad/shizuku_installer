@@ -14,6 +14,9 @@ class ShizukuStatusSection extends StatelessWidget {
     final HeaderStatus headerStatus;
 
     switch (stateProvider.status) {
+      case ShizukuStatus.notInitialized:
+        headerStatus = HeaderStatus.loading;
+        break;
       case ShizukuStatus.ready:
         headerStatus = HeaderStatus.ready;
         break;
@@ -25,12 +28,14 @@ class ShizukuStatusSection extends StatelessWidget {
         headerStatus = HeaderStatus.notReady;
     }
 
+    final isLoading = headerStatus == HeaderStatus.loading;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HeaderWidget(header: 'Shizuku Status', status: headerStatus),
         const SizedBox(height: 8),
-        Text(message),
+        Text(isLoading ? "Loading shizuku status..." : message),
         const SizedBox(height: 8),
       ],
     );

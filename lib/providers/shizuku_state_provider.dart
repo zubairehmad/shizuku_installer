@@ -52,7 +52,9 @@ class ShizukuStateProvider extends ChangeNotifier {
   String? get statusMessage => _stateInfo?.message;
 
   ShizukuStateProvider([int durationSeconds = 3]) {
-    _startAutoRefresh(durationSeconds);
+    _refreshShizukuState().then((_) {
+      _startAutoRefresh(durationSeconds);
+    });
   }
 
   @override
