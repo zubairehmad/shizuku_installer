@@ -46,4 +46,5 @@ flutter {
 dependencies {
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("com.github.d4rken-org.porter-api:sdk-extras:0.9.0")
 }

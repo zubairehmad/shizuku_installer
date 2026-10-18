@@ -9,6 +9,7 @@ import android.util.Log
 import com.zubair.shizukupackageinstaller.installer.PackageInstaller
 import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
 import com.zubair.shizukupackageinstaller.privileged.shizuku.ShizukuApi
+import com.zubair.shizukupackageinstaller.privileged.porter.PorterApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -32,7 +33,8 @@ class MainActivity : FlutterActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    privilegedApi = ShizukuApi(this)
+    // privilegedApi = ShizukuApi(this)
+    privilegedApi = PorterApi(this)
     privilegedApi.initialize()
     packageInstaller = PackageInstaller(this, privilegedApi) { action -> runOnUiThread(action) }
     handleIntent(intent)
