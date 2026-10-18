@@ -12,10 +12,9 @@ import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import org.json.JSONObject
-import rikka.shizuku.Shizuku
-
 class PackageInstaller(
         private val context: Context,
+        private val privilegedApi: PrivilegedApi,
         private val runOnUiThread: ((() -> Unit) -> Unit),
 ) {
   companion object {
@@ -24,23 +23,12 @@ class PackageInstaller(
 
   private val supportedApkExtensions = setOf("apk")
   private val supportedXapkExtensions = setOf("xapk")
-  @Volatile private var binderAvailable = false
   @Volatile private var installInProgress = false
   @Volatile private var cancelRequested = false
   @Volatile private var activeProcess: Process? = null
   @Volatile private var activeStagedPaths: MutableList<String>? = null
   @Volatile private var activeExtractedDir: File? = null
   private val installLock = Any()
-
-  private fun isShizukuBinderAlive(): Boolean {
-    return try {
-      val ping = Shizuku.pingBinder()
-      val binderAlive = Shizuku.getBinder()?.isBinderAlive == true
-      ping || binderAlive
-    } catch (_: Throwable) {
-      false
-    }
-  }
 
   fun installApk(apkPath: String, result: MethodChannel.Result) {
     if (installInProgress) {
@@ -65,7 +53,7 @@ class PackageInstaller(
       return
     }
 
-    val running = binderAvailable || isShizukuBinderAlive()
+    val running = privilegedApi.isAvailable()
     if (!running) {
       Log.w(TAG, "installApk rejected: Shizuku not running")
       result.error("SHIZUKU_NOT_RUNNING", "Shizuku is not running.", null)
@@ -73,11 +61,7 @@ class PackageInstaller(
     }
 
     val hasPermission =
-            try {
-              Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-            } catch (_: Throwable) {
-              false
-            }
+            privilegedApi.hasPermission()
 
     if (!hasPermission) {
       Log.w(TAG, "installApk rejected: Shizuku permission not granted")
@@ -97,7 +81,7 @@ class PackageInstaller(
                 val command = "pm install -r --user 0 \"$stagedPath\""
                 throwIfCancelled()
                 val process =
-                        createShizukuProcess(arrayOf("sh", "-c", command), null, null)
+                        privilegedApi.createProcess(arrayOf("sh", "-c", command), null, null)
                                 ?: throw IllegalStateException("Unable to create Shizuku process")
                 setActiveProcess(process)
                 Log.d(TAG, "Shizuku install process started")
@@ -180,7 +164,7 @@ class PackageInstaller(
       return
     }
 
-    val running = binderAvailable || isShizukuBinderAlive()
+    val running = privilegedApi.isAvailable()
     if (!running) {
       Log.w(TAG, "installXapk rejected: Shizuku not running")
       result.error("SHIZUKU_NOT_RUNNING", "Shizuku is not running.", null)
@@ -188,11 +172,7 @@ class PackageInstaller(
     }
 
     val hasPermission =
-            try {
-              Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-            } catch (_: Throwable) {
-              false
-            }
+            privilegedApi.hasPermission()
 
     if (!hasPermission) {
       Log.w(TAG, "installXapk rejected: Shizuku permission not granted")
@@ -591,7 +571,7 @@ class PackageInstaller(
           registerProcess: Boolean = false,
   ): CommandResult {
     val process =
-            createShizukuProcess(arrayOf("sh", "-c", command), null, null)
+            privilegedApi.createProcess(arrayOf("sh", "-c", command), null, null)
                     ?: return CommandResult(-1, "", "Unable to create Shizuku process")
     if (registerProcess) {
       setActiveProcess(process)
@@ -613,7 +593,7 @@ class PackageInstaller(
     val targetPath = "/data/local/tmp/adb_pkg_installer_${token}.apk"
     Log.d(TAG, "stageApkToShellTmp start: $apkPath -> $targetPath")
     val process =
-            createShizukuProcess(arrayOf("sh", "-c", "cat > \"$targetPath\""), null, null)
+            privilegedApi.createProcess(arrayOf("sh", "-c", "cat > \"$targetPath\""), null, null)
                     ?: throw IllegalStateException("Unable to create Shizuku process for staging")
     try {
       sourceFile.inputStream().use { input ->
@@ -701,27 +681,6 @@ class PackageInstaller(
       }
     } catch (_: Throwable) {
       Log.w(TAG, "Failed cleaning staged APK: $path")
-    }
-  }
-
-  private fun createShizukuProcess(
-          command: Array<String>,
-          env: Array<String>?,
-          dir: String?,
-  ): Process? {
-    return try {
-      val method =
-              Shizuku::class.java.getDeclaredMethod(
-                      "newProcess",
-                      Array<String>::class.java,
-                      Array<String>::class.java,
-                      String::class.java,
-              )
-      method.isAccessible = true
-      method.invoke(null, command, env, dir) as? Process
-    } catch (error: Throwable) {
-      Log.w(TAG, "Failed to create Shizuku process: ${error.message}")
-      null
     }
   }
 

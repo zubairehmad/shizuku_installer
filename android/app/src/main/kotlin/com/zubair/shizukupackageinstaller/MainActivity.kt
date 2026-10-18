@@ -34,6 +34,41 @@ class MainActivity : FlutterActivity() {
   private val ioExecutor = Executors.newSingleThreadExecutor()
   private var pendingUri: Uri? = null
   private lateinit var packageInstaller: PackageInstaller
+  private val privilegedApi =
+          object : PrivilegedApi {
+            override fun isAvailable(): Boolean {
+              return binderAvailable || isShizukuBinderAlive()
+            }
+
+            override fun hasPermission(): Boolean {
+              return try {
+                Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+              } catch (_: Throwable) {
+                false
+              }
+            }
+
+            override fun createProcess(
+                    command: Array<String>,
+                    env: Array<String>?,
+                    dir: String?,
+            ): Process? {
+              return try {
+                val method =
+                        Shizuku::class.java.getDeclaredMethod(
+                                "newProcess",
+                                Array<String>::class.java,
+                                Array<String>::class.java,
+                                String::class.java,
+                        )
+                method.isAccessible = true
+                method.invoke(null, command, env, dir) as? Process
+              } catch (error: Throwable) {
+                Log.w(TAG, "Failed to create Shizuku process: ${error.message}")
+                null
+              }
+            }
+          }
 
   private val binderReceivedListener =
           Shizuku.OnBinderReceivedListener {
@@ -49,7 +84,7 @@ class MainActivity : FlutterActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    packageInstaller = PackageInstaller(this) { action -> runOnUiThread(action) }
+    packageInstaller = PackageInstaller(this, privilegedApi) { action -> runOnUiThread(action) }
     handleIntent(intent)
   }
 
