@@ -14,7 +14,7 @@ import java.util.zip.ZipFile
 import org.json.JSONObject
 class PackageInstaller(
         private val context: Context,
-        private val privilegedApi: PrivilegedApi,
+        initialPrivilegedApi: PrivilegedApi,
         private val runOnUiThread: ((() -> Unit) -> Unit),
 ) {
   companion object {
@@ -23,12 +23,23 @@ class PackageInstaller(
 
   private val supportedApkExtensions = setOf("apk")
   private val supportedXapkExtensions = setOf("xapk")
+  @Volatile private var privilegedApi = initialPrivilegedApi
   @Volatile private var installInProgress = false
   @Volatile private var cancelRequested = false
   @Volatile private var activeProcess: Process? = null
   @Volatile private var activeStagedPaths: MutableList<String>? = null
   @Volatile private var activeExtractedDir: File? = null
   private val installLock = Any()
+
+  fun replacePrivilegedApi(newPrivilegedApi: PrivilegedApi): Boolean {
+    synchronized(installLock) {
+      if (installInProgress) {
+        return false
+      }
+      privilegedApi = newPrivilegedApi
+      return true
+    }
+  }
 
   fun installApk(apkPath: String, result: MethodChannel.Result) {
     if (installInProgress) {
