@@ -1,9 +1,9 @@
-package com.zubair.shizukupackageinstaller
+package com.zubair.shizukupackageinstaller.installer
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Environment
 import android.util.Log
+import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
 import io.flutter.plugin.common.MethodChannel
 import java.io.BufferedReader
 import java.io.File
@@ -12,6 +12,7 @@ import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import org.json.JSONObject
+
 class PackageInstaller(
         private val context: Context,
         initialPrivilegedApi: PrivilegedApi,
@@ -71,8 +72,7 @@ class PackageInstaller(
       return
     }
 
-    val hasPermission =
-            privilegedApi.hasPermission()
+    val hasPermission = privilegedApi.hasPermission()
 
     if (!hasPermission) {
       Log.w(TAG, "installApk rejected: Shizuku permission not granted")
@@ -91,9 +91,7 @@ class PackageInstaller(
                 setActiveCleanup(mutableListOf(stagedPath), null)
                 val command = "pm install -r --user 0 \"$stagedPath\""
                 throwIfCancelled()
-                val process =
-                        privilegedApi.createProcess(arrayOf("sh", "-c", command), null, null)
-                                ?: throw IllegalStateException("Unable to create Shizuku process")
+                val process = privilegedApi.createProcess(command)
                 setActiveProcess(process)
                 Log.d(TAG, "Shizuku install process started")
                 val exitCode = waitForExitCode(process, 90, "installApk")
@@ -182,8 +180,7 @@ class PackageInstaller(
       return
     }
 
-    val hasPermission =
-            privilegedApi.hasPermission()
+    val hasPermission = privilegedApi.hasPermission()
 
     if (!hasPermission) {
       Log.w(TAG, "installXapk rejected: Shizuku permission not granted")
@@ -582,8 +579,15 @@ class PackageInstaller(
           registerProcess: Boolean = false,
   ): CommandResult {
     val process =
-            privilegedApi.createProcess(arrayOf("sh", "-c", command), null, null)
-                    ?: return CommandResult(-1, "", "Unable to create Shizuku process")
+            try {
+              privilegedApi.createProcess(command)
+            } catch (error: Throwable) {
+              return CommandResult(
+                      -1,
+                      "",
+                      error.message ?: "Unable to create Shizuku process",
+              )
+            }
     if (registerProcess) {
       setActiveProcess(process)
     }
@@ -604,8 +608,14 @@ class PackageInstaller(
     val targetPath = "/data/local/tmp/adb_pkg_installer_${token}.apk"
     Log.d(TAG, "stageApkToShellTmp start: $apkPath -> $targetPath")
     val process =
-            privilegedApi.createProcess(arrayOf("sh", "-c", "cat > \"$targetPath\""), null, null)
-                    ?: throw IllegalStateException("Unable to create Shizuku process for staging")
+            try {
+              privilegedApi.createProcess("cat > \"$targetPath\"")
+            } catch (error: Throwable) {
+              throw IllegalStateException(
+                      "Unable to create Shizuku process for staging",
+                      error,
+              )
+            }
     try {
       sourceFile.inputStream().use { input ->
         process.outputStream.use { output -> input.copyTo(output) }
@@ -702,5 +712,4 @@ class PackageInstaller(
       ""
     }
   }
-
 }

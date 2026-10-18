@@ -6,12 +6,16 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
+import com.zubair.shizukupackageinstaller.installer.PackageInstaller
+import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
+import com.zubair.shizukupackageinstaller.privileged.shizuku.ShizukuApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executors
+
 class MainActivity : FlutterActivity() {
   companion object {
     private const val CHANNEL = "adb_pkg_installer/shizuku"
@@ -23,14 +27,14 @@ class MainActivity : FlutterActivity() {
   private val supportedXapkExtensions = setOf("xapk")
   private val ioExecutor = Executors.newSingleThreadExecutor()
   private var pendingUri: Uri? = null
-  private lateinit var shizukuApi: ShizukuApi
+  private lateinit var privilegedApi: PrivilegedApi
   private lateinit var packageInstaller: PackageInstaller
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    shizukuApi = ShizukuApi(this)
-    shizukuApi.initialize()
-    packageInstaller = PackageInstaller(this, shizukuApi) { action -> runOnUiThread(action) }
+    privilegedApi = ShizukuApi(this)
+    privilegedApi.initialize()
+    packageInstaller = PackageInstaller(this, privilegedApi) { action -> runOnUiThread(action) }
     handleIntent(intent)
   }
 
@@ -87,7 +91,7 @@ class MainActivity : FlutterActivity() {
           copyUriToTempDir(uriString, result)
         }
         "getShizukuState" -> {
-          result.success(shizukuApi.getStatePayload())
+          result.success(privilegedApi.getStatePayload())
         }
         "installApk" -> {
           val apkPath = call.argument<String>("apkPath")
@@ -183,7 +187,7 @@ class MainActivity : FlutterActivity() {
   }
 
   override fun onDestroy() {
-    shizukuApi.close()
+    privilegedApi.close()
     super.onDestroy()
   }
 }

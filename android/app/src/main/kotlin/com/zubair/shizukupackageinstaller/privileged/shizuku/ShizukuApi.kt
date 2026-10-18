@@ -1,8 +1,9 @@
-package com.zubair.shizukupackageinstaller
+package com.zubair.shizukupackageinstaller.privileged.shizuku
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuProvider
 
@@ -30,14 +31,14 @@ class ShizukuApi(private val context: Context) : PrivilegedApi {
             Log.d(TAG, "Shizuku binder disconnected")
           }
 
-  fun initialize() {
+  override fun initialize() {
     requestBinderIfNeeded()
     binderAvailable = isBinderAlive()
     Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
     Shizuku.addBinderDeadListener(binderDeadListener)
   }
 
-  fun close() {
+  override fun close() {
     Shizuku.removeBinderReceivedListener(binderReceivedListener)
     Shizuku.removeBinderDeadListener(binderDeadListener)
   }
@@ -54,11 +55,7 @@ class ShizukuApi(private val context: Context) : PrivilegedApi {
     }
   }
 
-  override fun createProcess(
-          command: Array<String>,
-          env: Array<String>?,
-          dir: String?,
-  ): Process? {
+  override fun createProcess(command: String): Process {
     return try {
       val method =
               Shizuku::class.java.getDeclaredMethod(
@@ -68,14 +65,15 @@ class ShizukuApi(private val context: Context) : PrivilegedApi {
                       String::class.java,
               )
       method.isAccessible = true
-      method.invoke(null, command, env, dir) as? Process
+      method.invoke(null, arrayOf("sh", "-c", command), null, null) as? Process
+              ?: throw IllegalStateException("Unable to create Shizuku process")
     } catch (error: Throwable) {
       Log.w(TAG, "Failed to create Shizuku process: ${error.message}")
-      null
+      throw IllegalStateException("Unable to create Shizuku process", error)
     }
   }
 
-  fun getStatePayload(): Map<String, Any> {
+  override fun getStatePayload(): Map<String, Any?> {
     requestBinderIfNeeded()
     val running = isAvailable()
     Log.d(TAG, "Shizuku state check: running=$running, binderAvailable=$binderAvailable")
