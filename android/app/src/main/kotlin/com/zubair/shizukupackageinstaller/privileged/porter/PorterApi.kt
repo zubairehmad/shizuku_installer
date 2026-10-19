@@ -52,9 +52,7 @@ class PorterApi(private val context: Context) : PrivilegedApi {
   override fun hasPermission(): Boolean {
     val currentConnection = connection.get() ?: return false
     return try {
-      runBlocking {
-        currentConnection.checkPermission() is PermissionState.Granted
-      }
+      currentConnection.permission.value is PermissionState.Granted
     } catch (error: Throwable) {
       Log.w(TAG, "Unable to check Porter permission: ${error.message}")
       if (Porter.connection.value !== currentConnection) {

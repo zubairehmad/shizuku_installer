@@ -7,9 +7,7 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
 import com.zubair.shizukupackageinstaller.installer.PackageInstaller
-import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
-import com.zubair.shizukupackageinstaller.privileged.shizuku.ShizukuApi
-import com.zubair.shizukupackageinstaller.privileged.porter.PorterApi
+import com.zubair.shizukupackageinstaller.privileged.ProviderSelector
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -28,15 +26,14 @@ class MainActivity : FlutterActivity() {
   private val supportedXapkExtensions = setOf("xapk")
   private val ioExecutor = Executors.newSingleThreadExecutor()
   private var pendingUri: Uri? = null
-  private lateinit var privilegedApi: PrivilegedApi
+  private lateinit var providerSelector: ProviderSelector
   private lateinit var packageInstaller: PackageInstaller
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    // privilegedApi = ShizukuApi(this)
-    privilegedApi = PorterApi(this)
-    privilegedApi.initialize()
-    packageInstaller = PackageInstaller(this, privilegedApi) { action -> runOnUiThread(action) }
+    providerSelector = ProviderSelector(this)
+    providerSelector.initialize()
+    packageInstaller = PackageInstaller(this, providerSelector) { action -> runOnUiThread(action) }
     handleIntent(intent)
   }
 
@@ -93,7 +90,7 @@ class MainActivity : FlutterActivity() {
           copyUriToTempDir(uriString, result)
         }
         "getShizukuState" -> {
-          result.success(privilegedApi.getStatePayload())
+          result.success(providerSelector.getStatePayload())
         }
         "installApk" -> {
           val apkPath = call.argument<String>("apkPath")
@@ -189,7 +186,7 @@ class MainActivity : FlutterActivity() {
   }
 
   override fun onDestroy() {
-    privilegedApi.close()
+    providerSelector.close()
     super.onDestroy()
   }
 }

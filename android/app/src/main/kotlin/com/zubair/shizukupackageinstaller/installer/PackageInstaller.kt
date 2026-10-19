@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import com.zubair.shizukupackageinstaller.privileged.PrivilegedApi
+import com.zubair.shizukupackageinstaller.privileged.ProviderSelector
 import io.flutter.plugin.common.MethodChannel
 import java.io.BufferedReader
 import java.io.File
@@ -15,7 +16,7 @@ import org.json.JSONObject
 
 class PackageInstaller(
         private val context: Context,
-        initialPrivilegedApi: PrivilegedApi,
+        private val providerSelector: ProviderSelector,
         private val runOnUiThread: ((() -> Unit) -> Unit),
 ) {
   companion object {
@@ -24,7 +25,7 @@ class PackageInstaller(
 
   private val supportedApkExtensions = setOf("apk")
   private val supportedXapkExtensions = setOf("xapk")
-  @Volatile private var privilegedApi = initialPrivilegedApi
+  @Volatile private var activePrivilegedApi: PrivilegedApi? = null
   @Volatile private var installInProgress = false
   @Volatile private var cancelRequested = false
   @Volatile private var activeProcess: Process? = null
@@ -32,22 +33,23 @@ class PackageInstaller(
   @Volatile private var activeExtractedDir: File? = null
   private val installLock = Any()
 
-  fun replacePrivilegedApi(newPrivilegedApi: PrivilegedApi): Boolean {
-    synchronized(installLock) {
-      if (installInProgress) {
-        return false
-      }
-      privilegedApi = newPrivilegedApi
-      return true
-    }
-  }
-
   fun installApk(apkPath: String, result: MethodChannel.Result) {
     if (installInProgress) {
       Log.w(TAG, "installApk rejected: install already in progress")
       result.error("INSTALL_IN_PROGRESS", "Another install is already running.", null)
       return
     }
+    val privilegedApi =
+            providerSelector.privilegedApi
+                    ?: run {
+                      result.error(
+                              "PRIVILEGED_API_UNAVAILABLE",
+                              "No privileged provider is ready.",
+                              null,
+                      )
+                      return
+                    }
+    activePrivilegedApi = privilegedApi
 
     resetInstallState()
 
@@ -156,6 +158,17 @@ class PackageInstaller(
       result.error("INSTALL_IN_PROGRESS", "Another install is already running.", null)
       return
     }
+    val privilegedApi =
+            providerSelector.privilegedApi
+                    ?: run {
+                      result.error(
+                              "PRIVILEGED_API_UNAVAILABLE",
+                              "No privileged provider is ready.",
+                              null,
+                      )
+                      return
+                    }
+    activePrivilegedApi = privilegedApi
 
     resetInstallState()
 
@@ -311,6 +324,7 @@ class PackageInstaller(
       activeProcess = null
       activeStagedPaths = null
       activeExtractedDir = null
+      activePrivilegedApi = null
       cancelRequested = false
     }
   }
@@ -328,6 +342,10 @@ class PackageInstaller(
 
   private fun setCancelRequested() {
     synchronized(installLock) { cancelRequested = true }
+  }
+
+  private fun activeProvider(): PrivilegedApi {
+    return activePrivilegedApi ?: throw IllegalStateException("No privileged provider is active.")
   }
 
   private fun throwIfCancelled() {
@@ -580,7 +598,7 @@ class PackageInstaller(
   ): CommandResult {
     val process =
             try {
-              privilegedApi.createProcess(command)
+              activeProvider().createProcess(command)
             } catch (error: Throwable) {
               return CommandResult(
                       -1,
@@ -609,7 +627,7 @@ class PackageInstaller(
     Log.d(TAG, "stageApkToShellTmp start: $apkPath -> $targetPath")
     val process =
             try {
-              privilegedApi.createProcess("cat > \"$targetPath\"")
+              activeProvider().createProcess("cat > \"$targetPath\"")
             } catch (error: Throwable) {
               throw IllegalStateException(
                       "Unable to create Shizuku process for staging",
