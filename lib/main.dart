@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'providers/shizuku_state_provider.dart';
+import 'providers/privileged_access_state_provider.dart';
 import 'services/app_messenger.dart';
 import 'screens/home_screen.dart';
 
@@ -43,7 +43,7 @@ class _MyAppState extends State<MyApp> {
       ),
       themeMode: _themeMode,
       home: ChangeNotifierProvider(
-        create: (_) => ShizukuStateProvider(4),
+        create: (_) => PrivilegedAccessStateProvider(4),
         child: HomeScreen(
           themeMode: _themeMode,
           onThemeModeChanged: _updateThemeMode,

@@ -7,9 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../utils/file_extension_validator.dart';
 import '../services/app_messenger.dart';
-import '../services/shizuku_installer.dart';
+import '../services/privileged_installer.dart';
 import '../services/permission_handler.dart';
-import '../providers/shizuku_state_provider.dart';
+import '../providers/privileged_access_state_provider.dart';
 import 'header_widget.dart';
 
 class InstallSection extends StatefulWidget {
@@ -27,7 +27,7 @@ class _InstallSectionState extends State<InstallSection> {
   bool _isSelectedByOpenWith = false;
 
   Future<void> _handlePendingUri() async {
-    final uri = await ShizukuInstaller.getPendingUri();
+    final uri = await PrivilegedInstaller.getPendingUri();
     if (uri != null) {
       _handleUriInstallRequest(uri);
     }
@@ -41,7 +41,7 @@ class _InstallSectionState extends State<InstallSection> {
     setState(() => _isFileLoading = true);
 
     try {
-      final path = await ShizukuInstaller.copyUriToTempDir(uri);
+      final path = await PrivilegedInstaller.copyUriToTempDir(uri);
       _selectedPath = path;
       _isSelectedByOpenWith = true;
     } on PlatformException catch (e) {
@@ -64,7 +64,7 @@ class _InstallSectionState extends State<InstallSection> {
   void initState() {
     super.initState();
     _handlePendingUri();
-    ShizukuInstaller.setOnOpenFileListener(listener: _handleUriInstallRequest);
+    PrivilegedInstaller.setOnOpenFileListener(listener: _handleUriInstallRequest);
   }
 
   Future<void> _installSelectedPackage() async {
@@ -79,9 +79,9 @@ class _InstallSectionState extends State<InstallSection> {
     try {
       final extension = FileExtensionValidator.getExtension(_selectedPath!);
       if (extension == 'xapk') {
-        isSuccess = await ShizukuInstaller.installXapk(_selectedPath!);
+        isSuccess = await PrivilegedInstaller.installXapk(_selectedPath!);
       } else {
-        isSuccess = await ShizukuInstaller.installApk(_selectedPath!);
+        isSuccess = await PrivilegedInstaller.installApk(_selectedPath!);
       }
     } on PlatformException catch (error) {
       if (error.code == 'INSTALL_CANCELLED') {
@@ -181,7 +181,7 @@ class _InstallSectionState extends State<InstallSection> {
     setState(() => _cancelRequested = true);
 
     try {
-      await ShizukuInstaller.cancelInstall();
+      await PrivilegedInstaller.cancelInstall();
     } on PlatformException catch (e) {
       AppMessenger.showMessage(
         'Failed to cancel: ${e.code} ${e.message == null ? '' : "- ${e.message}"}',
@@ -207,18 +207,18 @@ class _InstallSectionState extends State<InstallSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ShizukuStateProvider, bool>(
-      selector: (_, shizukuState) => shizukuState.isReady,
-      builder: (_, isShizukuReady, _) {
+    return Selector<PrivilegedAccessStateProvider, bool>(
+      selector: (_, state) => state.isReady,
+      builder: (_, isReady, _) {
         final hasSelection = _selectedPath != null;
-        final isSelectDisabled = _isInstalling || !isShizukuReady;
+        final isSelectDisabled = _isInstalling || !isReady;
         final canClearSelection = hasSelection && !_isInstalling && !_isFileLoading;
-        final canInstall = isShizukuReady && canClearSelection;
+        final canInstall = isReady && canClearSelection;
         final fileName = _selectedPath?.split('/').last;
         final selectLabel = _selectedPath != null
             ? 'Change Selected File'
             : 'Select Installable File';
-        final headerStatus = !isShizukuReady
+        final headerStatus = !isReady
             ? HeaderStatus.notReady
             : hasSelection
             ? HeaderStatus.ready

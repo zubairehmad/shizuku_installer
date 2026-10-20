@@ -17,7 +17,7 @@ import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
   companion object {
-    private const val CHANNEL = "adb_pkg_installer/shizuku"
+    private const val CHANNEL = "adb_pkg_installer/privileged"
     private const val TAG = "ShizukuInstaller"
   }
 
@@ -89,7 +89,7 @@ class MainActivity : FlutterActivity() {
           }
           copyUriToTempDir(uriString, result)
         }
-        "getShizukuState" -> {
+        "getProviderState" -> {
           result.success(providerSelector.getStatePayload())
         }
         "installApk" -> {

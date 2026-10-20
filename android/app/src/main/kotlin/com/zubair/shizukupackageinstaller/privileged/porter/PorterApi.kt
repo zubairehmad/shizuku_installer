@@ -89,7 +89,7 @@ class PorterApi(private val context: Context) : PrivilegedApi {
       is PorterConnectionState.Incompatible -> {
         mapOf(
                 "status" to "porter_incompatible",
-                "message" to "Porter is running but its protocol is incompatible with this app.",
+                "message" to "Porter is running but its protocol is incompatible with this app. Please try installing a version of Porter compatible with Porter SDK 0.9.0.",
                 "installed" to true,
                 "running" to true,
                 "permissionGranted" to false,
@@ -152,7 +152,7 @@ class PorterApi(private val context: Context) : PrivilegedApi {
         is PorterAvailability.InstalledUnrecognized ->
           mapOf(
                   "status" to "porter_installed_unrecognized",
-                  "message" to "An unrecognized app owns Porter's permission.",
+                  "message" to "An unrecognized manager app was detected. Please install the official Porter manager/application.",
                   "installed" to true,
                   "running" to false,
                   "permissionGranted" to false,

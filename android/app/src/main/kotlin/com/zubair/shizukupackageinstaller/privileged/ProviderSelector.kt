@@ -23,10 +23,10 @@ class ProviderSelector(context: Context) {
 
     if (porterState["status"] == "ready") {
       selectedProvider = porterApi
-      return withSelectedProvider(porterState, "porter")
+      return withSelectedProvider(porterState, "Porter")
     } else if (shizukuState["status"] == "ready") {
       selectedProvider = shizukuApi
-      return withSelectedProvider(shizukuState, "shizuku")
+      return withSelectedProvider(shizukuState, "Shizuku")
     }
 
     selectedProvider = null
@@ -64,9 +64,9 @@ class ProviderSelector(context: Context) {
     }
 
     if (porterInstalled && !shizukuInstalled) {
-      return porterState + ("selectedProvider" to null)
+      return porterState + ("selectedProvider" to "Porter")
     } else if (!porterInstalled && shizukuInstalled) {
-      return shizukuState + ("selectedProvider" to null)
+      return shizukuState + ("selectedProvider" to "Shizuku")
     }
 
     val porterRunning = porterState["running"] == true
