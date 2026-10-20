@@ -283,12 +283,6 @@ class _InstallSectionState extends State<InstallSection> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2.2),
-                    ),
-                    SizedBox(width: 10),
                     Flexible(
                       child: Text(
                         'Please wait while we are installing the application.',
