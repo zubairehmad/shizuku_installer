@@ -26,6 +26,8 @@ class PorterApi(private val context: Context) : PrivilegedApi {
   private val connection = AtomicReference<PorterConnection?>(null)
   @Volatile private var scope: CoroutineScope? = null
 
+  override fun getName(): String = "Porter"
+
   override fun initialize() {
     if (scope != null) {
       return

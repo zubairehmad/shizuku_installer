@@ -23,10 +23,10 @@ class ProviderSelector(context: Context) {
 
     if (porterState["status"] == "ready") {
       selectedProvider = porterApi
-      return withSelectedProvider(porterState, "Porter")
+      return withSelectedProvider(porterState, porterApi.getName())
     } else if (shizukuState["status"] == "ready") {
       selectedProvider = shizukuApi
-      return withSelectedProvider(shizukuState, "Shizuku")
+      return withSelectedProvider(shizukuState, shizukuApi.getName())
     }
 
     selectedProvider = null
@@ -56,7 +56,7 @@ class ProviderSelector(context: Context) {
     if (!porterInstalled && !shizukuInstalled) {
       return aggregate(
               "providers_not_installed",
-              "Neither Porter nor Shizuku is installed.",
+              "Neither ${porterApi.getName()} nor ${shizukuApi.getName()} is installed.",
               installed = false,
               running = false,
               permissionGranted = false,
@@ -64,9 +64,9 @@ class ProviderSelector(context: Context) {
     }
 
     if (porterInstalled && !shizukuInstalled) {
-      return porterState + ("selectedProvider" to "Porter")
+      return porterState + ("selectedProvider" to null)
     } else if (!porterInstalled && shizukuInstalled) {
-      return shizukuState + ("selectedProvider" to "Shizuku")
+      return shizukuState + ("selectedProvider" to null)
     }
 
     val porterRunning = porterState["running"] == true
@@ -77,7 +77,7 @@ class ProviderSelector(context: Context) {
     if (!porterRunning && !shizukuRunning) {
       return aggregate(
               "providers_not_running",
-              "Both Porter and Shizuku are installed but neither is running.",
+              "Both ${porterApi.getName()} and ${shizukuApi.getName()} are installed but neither is running.",
               installed = true,
               running = false,
               permissionGranted = false,
@@ -85,7 +85,7 @@ class ProviderSelector(context: Context) {
     } else if (porterRunning && shizukuRunning && !porterPermission && !shizukuPermission) {
       return aggregate(
               "providers_permission_required",
-              "Both Porter and Shizuku are running, but this app lacks permission to use either.",
+              "Both ${porterApi.getName()} and ${shizukuApi.getName()} are running, but this app lacks permission to use either.",
               installed = true,
               running = true,
               permissionGranted = false,
@@ -94,8 +94,8 @@ class ProviderSelector(context: Context) {
 
     val unavailable =
             listOf(
-                            "Porter" to porterState,
-                            "Shizuku" to shizukuState,
+                            porterApi.getName() to porterState,
+                            shizukuApi.getName() to shizukuState,
                     )
                     .filter { (_, state) -> state["status"] != "ready" }
                     .joinToString("\n") { (name, state) ->
@@ -103,7 +103,7 @@ class ProviderSelector(context: Context) {
                     }
     return aggregate(
             "providers_unavailable",
-            "Neither Porter nor Shizuku is ready.\n$unavailable",
+            "Neither ${porterApi.getName()} nor ${shizukuApi.getName()} is ready.\n$unavailable",
             installed = true,
             running = porterRunning || shizukuRunning,
             permissionGranted = porterPermission || shizukuPermission,

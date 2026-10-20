@@ -19,6 +19,8 @@ class ShizukuApi(private val context: Context) : PrivilegedApi {
 
   @Volatile private var binderAvailable = false
 
+  override fun getName(): String = "Shizuku"
+
   private val binderReceivedListener =
           Shizuku.OnBinderReceivedListener {
             binderAvailable = true

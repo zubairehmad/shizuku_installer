@@ -20,7 +20,7 @@ class PackageInstaller(
         private val runOnUiThread: ((() -> Unit) -> Unit),
 ) {
   companion object {
-    private const val TAG = "ShizukuInstaller"
+    private const val TAG = "PackageInstaller"
   }
 
   private val supportedApkExtensions = setOf("apk")
@@ -69,16 +69,24 @@ class PackageInstaller(
 
     val running = privilegedApi.isAvailable()
     if (!running) {
-      Log.w(TAG, "installApk rejected: Shizuku not running")
-      result.error("SHIZUKU_NOT_RUNNING", "Shizuku is not running.", null)
+      Log.w(TAG, "installApk rejected: ${privilegedApi.getName()} not running")
+      result.error(
+              "SHIZUKU_NOT_RUNNING",
+              "${privilegedApi.getName()} is not running.",
+              null,
+      )
       return
     }
 
     val hasPermission = privilegedApi.hasPermission()
 
     if (!hasPermission) {
-      Log.w(TAG, "installApk rejected: Shizuku permission not granted")
-      result.error("SHIZUKU_PERMISSION", "Shizuku permission not granted.", null)
+      Log.w(TAG, "installApk rejected: ${privilegedApi.getName()} permission not granted")
+      result.error(
+              "SHIZUKU_PERMISSION",
+              "${privilegedApi.getName()} permission not granted.",
+              null,
+      )
       return
     }
 
@@ -95,7 +103,7 @@ class PackageInstaller(
                 throwIfCancelled()
                 val process = privilegedApi.createProcess(command)
                 setActiveProcess(process)
-                Log.d(TAG, "Shizuku install process started")
+                Log.d(TAG, "${privilegedApi.getName()} install process started")
                 val exitCode = waitForExitCode(process, 90, "installApk")
                 val output = readAll(process.inputStream)
                 val errorOutput = readAll(process.errorStream)
@@ -188,16 +196,24 @@ class PackageInstaller(
 
     val running = privilegedApi.isAvailable()
     if (!running) {
-      Log.w(TAG, "installXapk rejected: Shizuku not running")
-      result.error("SHIZUKU_NOT_RUNNING", "Shizuku is not running.", null)
+      Log.w(TAG, "installXapk rejected: ${privilegedApi.getName()} not running")
+      result.error(
+              "SHIZUKU_NOT_RUNNING",
+              "${privilegedApi.getName()} is not running.",
+              null,
+      )
       return
     }
 
     val hasPermission = privilegedApi.hasPermission()
 
     if (!hasPermission) {
-      Log.w(TAG, "installXapk rejected: Shizuku permission not granted")
-      result.error("SHIZUKU_PERMISSION", "Shizuku permission not granted.", null)
+      Log.w(TAG, "installXapk rejected: ${privilegedApi.getName()} permission not granted")
+      result.error(
+              "SHIZUKU_PERMISSION",
+              "${privilegedApi.getName()} permission not granted.",
+              null,
+      )
       return
     }
 
@@ -479,10 +495,10 @@ class PackageInstaller(
         if (!deleted) {
           Log.w(
                   TAG,
-                  "Failed to delete extracted XAPK via app IO; trying Shizuku rm: ${tempDir.absolutePath}"
+                  "Failed to delete extracted XAPK via app IO; trying ${activeProvider().getName()} rm: ${tempDir.absolutePath}"
           )
           val command = "rm -rf \"${tempDir.absolutePath}\""
-          runShizukuCommand(command, 30)
+          runPrivilegedCommand(command, 30)
         } else {
           Log.d(TAG, "Cleaned extracted XAPK dir: ${tempDir.absolutePath}")
         }
@@ -509,7 +525,7 @@ class PackageInstaller(
             )
     var lastResult: CommandResult? = null
     for (command in commands) {
-      val result = runShizukuCommand(command, 120, registerProcess = true)
+      val result = runPrivilegedCommand(command, 120, registerProcess = true)
       lastResult = result
       if (result.exitCode == 0) {
         return result
@@ -536,7 +552,7 @@ class PackageInstaller(
   private fun installUsingSession(stagedPaths: List<String>): CommandResult {
     Log.d(TAG, "Session install start for ${stagedPaths.size} APK(s)")
     val createResult =
-            runShizukuCommand(
+            runPrivilegedCommand(
                     "pm install-create -r --user 0",
                     30,
                     registerProcess = true,
@@ -563,24 +579,24 @@ class PackageInstaller(
       val name = file.name.ifBlank { "split_$index.apk" }
       val size = file.length()
       val writeCommand = "pm install-write -S $size $sessionId \"$name\" \"${file.absolutePath}\""
-      val writeResult = runShizukuCommand(writeCommand, 60, registerProcess = true)
+      val writeResult = runPrivilegedCommand(writeCommand, 60, registerProcess = true)
       if (writeResult.exitCode != 0) {
         Log.w(
                 TAG,
                 "install-write failed for $name: ${writeResult.errorOutput.ifBlank { writeResult.output }}",
         )
-        runShizukuCommand("pm install-abandon $sessionId", 15)
+        runPrivilegedCommand("pm install-abandon $sessionId", 15)
         return writeResult
       }
     }
 
-    val commitResult = runShizukuCommand("pm install-commit $sessionId", 60, registerProcess = true)
+    val commitResult = runPrivilegedCommand("pm install-commit $sessionId", 60, registerProcess = true)
     if (commitResult.exitCode != 0) {
       Log.w(
               TAG,
               "install-commit failed: ${commitResult.errorOutput.ifBlank { commitResult.output }}",
       )
-      runShizukuCommand("pm install-abandon $sessionId", 15)
+      runPrivilegedCommand("pm install-abandon $sessionId", 15)
     }
     Log.d(TAG, "Session install finished: exit=${commitResult.exitCode}")
     return commitResult
@@ -591,7 +607,7 @@ class PackageInstaller(
     return regex.find(output)?.value
   }
 
-  private fun runShizukuCommand(
+  private fun runPrivilegedCommand(
           command: String,
           timeoutSeconds: Long,
           registerProcess: Boolean = false,
@@ -603,7 +619,7 @@ class PackageInstaller(
               return CommandResult(
                       -1,
                       "",
-                      error.message ?: "Unable to create Shizuku process",
+                      error.message ?: "Unable to create ${activeProvider().getName()} process",
               )
             }
     if (registerProcess) {
@@ -630,7 +646,7 @@ class PackageInstaller(
               activeProvider().createProcess("cat > \"$targetPath\"")
             } catch (error: Throwable) {
               throw IllegalStateException(
-                      "Unable to create Shizuku process for staging",
+                      "Unable to create ${activeProvider().getName()} process for staging",
                       error,
               )
             }
@@ -650,7 +666,7 @@ class PackageInstaller(
               "Failed staging APK (exit=$exitCode): ${errorOutput.ifBlank { output }}",
       )
     }
-    val chmodResult = runShizukuCommand("chmod 644 \"$targetPath\"", 10)
+    val chmodResult = runPrivilegedCommand("chmod 644 \"$targetPath\"", 10)
     if (chmodResult.exitCode != 0) {
       Log.w(
               TAG,
@@ -700,20 +716,20 @@ class PackageInstaller(
         return
       }
       if (file.exists() && !file.delete()) {
-        Log.w(TAG, "App delete failed for staged APK, trying Shizuku rm: $path")
+        Log.w(TAG, "App delete failed for staged APK, trying ${activeProvider().getName()} rm: $path")
         val command = "rm -f \"$path\""
-        val result = runShizukuCommand(command, 15)
+        val result = runPrivilegedCommand(command, 15)
         if (result.exitCode != 0) {
           Log.w(
                   TAG,
-                  "Shizuku rm failed for staged APK: ${result.errorOutput.ifBlank { result.output }}",
+                  "${activeProvider().getName()} rm failed for staged APK: ${result.errorOutput.ifBlank { result.output }}",
           )
         }
         val stillExists = File(path).exists()
         if (stillExists) {
-          Log.w(TAG, "Staged APK still exists after Shizuku rm: $path")
+          Log.w(TAG, "Staged APK still exists after ${activeProvider().getName()} rm: $path")
         } else {
-          Log.d(TAG, "Staged APK removed via Shizuku rm: $path")
+          Log.d(TAG, "Staged APK removed via ${activeProvider().getName()} rm: $path")
         }
       } else {
         Log.d(TAG, "Staged APK removed via app delete: $path")
