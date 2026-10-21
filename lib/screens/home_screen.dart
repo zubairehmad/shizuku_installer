@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/install_section.dart';
-import '../widgets/shizuku_status_section.dart';
+import '../widgets/privileged_access_status_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -55,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                   ? const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: ShizukuStatusSection()),
+                        Expanded(child: PrivilegedAccessStatusSection()),
                         SizedBox(width: 16),
                         Expanded(child: InstallSection()),
                       ],
@@ -64,7 +64,7 @@ class HomeScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        ShizukuStatusSection(),
+                        PrivilegedAccessStatusSection(),
                         SizedBox(height: 16),
                         InstallSection(),
                       ],

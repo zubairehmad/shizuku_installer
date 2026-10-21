@@ -20,11 +20,7 @@ class HeaderWidget extends StatelessWidget {
       case HeaderStatus.oneStepRequired:
         background = Colors.amber;
         iconData = Icons.priority_high;
-      case HeaderStatus.notReady:
-        background = Colors.red;
-        iconData = Icons.close;
       default:
-        // initlaizing because required, but they won't be used
         background = Colors.red;
         iconData = Icons.close;
     }

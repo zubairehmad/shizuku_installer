@@ -1,12 +1,12 @@
 import 'package:flutter/services.dart';
 
-import '../models/shizuku_state_info.dart';
+import '../models/privileged_provider_state.dart';
 
-class ShizukuInstaller {
-  ShizukuInstaller._();
+class PrivilegedInstaller {
+  PrivilegedInstaller._();
 
   static const MethodChannel _channel = MethodChannel(
-    'adb_pkg_installer/shizuku',
+    'adb_pkg_installer/privileged',
   );
 
   static void setOnOpenFileListener({
@@ -33,30 +33,30 @@ class ShizukuInstaller {
     });
   }
 
-  static Future<ShizukuStateInfo> getShizukuState() async {
-    final Map<Object?, Object?>? result = await _channel
-        .invokeMapMethod<Object?, Object?>('getShizukuState');
-    return ShizukuStateInfo.fromMap(result ?? <Object?, Object?>{});
+  static Future<PrivilegedProviderState> getProviderState() async {
+    final result = await _channel.invokeMapMethod(
+      'getProviderState',
+    );
+    return PrivilegedProviderState.fromMap(result ?? {});
   }
 
   static Future<bool> installApk(String apkPath) async {
-    final bool? result = await _channel.invokeMethod<bool>(
-      'installApk',
-      <String, Object>{'apkPath': apkPath},
-    );
-    return result ?? false;
+    return await _channel.invokeMethod<bool>(
+          'installApk',
+          {'apkPath': apkPath},
+        ) ??
+        false;
   }
 
   static Future<bool> installXapk(String xapkPath) async {
-    final bool? result = await _channel.invokeMethod<bool>(
-      'installXapk',
-      <String, Object>{'xapkPath': xapkPath},
-    );
-    return result ?? false;
+    return await _channel.invokeMethod<bool>(
+          'installXapk',
+          {'xapkPath': xapkPath},
+        ) ??
+        false;
   }
 
   static Future<bool> cancelInstall() async {
-    final result = await _channel.invokeMethod<bool>('cancelInstall');
-    return result ?? false;
+    return await _channel.invokeMethod<bool>('cancelInstall') ?? false;
   }
 }
