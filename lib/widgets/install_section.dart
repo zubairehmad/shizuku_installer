@@ -122,13 +122,18 @@ class _InstallSectionState extends State<InstallSection> {
 
     setState(() => _isFileLoading = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-        allowedExtensions: FileExtensionValidator.allowedExtensions.toList(),
-        type: FileType.custom,
-      );
+      final result = await FilePicker.platform.pickFiles();
 
       final selectedPath = result?.files.singleOrNull?.path;
       if (!mounted || selectedPath == null || selectedPath.isEmpty) {
+        return;
+      }
+
+      if (!FileExtensionValidator.isValid(selectedPath)) {
+        AppMessenger.showMessage(
+          'Only .apk and .xapk files can be selected for installation.',
+        );
+        await _cleanupPickedFile(selectedPath);
         return;
       }
 
